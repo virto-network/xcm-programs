@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "lib": [
+      "ESNext",
+      "dom"
+    ],
+    "target": "ESNext",
+    "moduleResolution": "Bundler",
+    "skipLibCheck": true,
+    "typeRoots": [
+      "node_modules/@types",
+    ],
+    "outDir": "./dist"
+  },
+  "include": [
+    "**/*.ts"
+  ]
+}

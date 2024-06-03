@@ -1,0 +1,27 @@
+{
+  "name": "@virtonetwork/xcm-programs",
+  "version": "1.0.0",
+  "description": "XCM Programs that work alongside Kreivo",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "webpack -w",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "xcm",
+    "kreivo"
+  ],
+  "author": "Virto Team <contact@virto.team>",
+  "license": "MIT",
+  "dependencies": {
+    "@polkadot/api": "^11.2.1",
+    "@polkadot/extension-dapp": "^0.47.5",
+    "hash-wasm": "^4.11.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4"
+  }
+}
