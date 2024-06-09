@@ -4,12 +4,14 @@ import { WsProvider, ApiPromise } from "@polkadot/api";
 import { location, fungibleAsset } from "../common";
 import { Signer } from "@polkadot/api/types";
 import {
+  topupCommunityAccountInKreivo,
   topupCommunityAccountInPeople,
   topupSignerAccountInKreivo,
 } from "./topup-accounts";
-import { DecisionMethod, Identity } from "../types";
+import { AccountId, DecisionMethod, Identity, Topup } from "../types";
 import { createCommunityTransact } from "./create-community";
 import { setIdentityThenAddSubsSendTransact } from "./set-identity";
+import { acquireMembershipsAndAddMembers } from "./acquire-memberships-invite-members";
 
 export async function topupThenCreateCommunity(
   // Injected parameters
@@ -20,7 +22,13 @@ export async function topupThenCreateCommunity(
   communityId: number,
   name: string,
   decisionMethod: DecisionMethod = { type: "Membership" },
-  identity?: Identity
+  identity?: Identity,
+  membershipAccounts: AccountId[] = [],
+  topup: Topup = {
+    signerInKreivo: 0.51e12,
+    communityAccountInKreivo: 1e9 + 0.3e12 * membershipAccounts.length,
+    communityAccountInPeople: identity ? 0.11e12 : 0,
+  }
 ) {
   const kusamaApi = await ApiPromise.create({
     provider: providers.kusama,
@@ -37,15 +45,48 @@ export async function topupThenCreateCommunity(
     {
       V4: [
         {
-          WithdrawAsset: [fungibleAsset(location`./Here`, 1e12)],
+          WithdrawAsset: [
+            fungibleAsset(
+              location`./Here`,
+              topup.signerInKreivo +
+                topup.communityAccountInKreivo +
+                topup.communityAccountInPeople +
+                5e8
+            ),
+          ],
         },
         {
           BuyExecution: {
             fees: fungibleAsset(location`./Here`, 5e8),
           },
         },
-        await topupSignerAccountInKreivo(kusamaApi, address),
-        await topupCommunityAccountInPeople(kusamaApi, communityId),
+        ...(topup.signerInKreivo
+          ? [
+              await topupSignerAccountInKreivo(
+                kusamaApi,
+                address,
+                topup.signerInKreivo
+              ),
+            ]
+          : []),
+        ...(topup.communityAccountInKreivo
+          ? [
+              await topupCommunityAccountInKreivo(
+                kusamaApi,
+                communityId,
+                topup.communityAccountInKreivo
+              ),
+            ]
+          : []),
+        ...(topup.communityAccountInPeople
+          ? [
+              await topupCommunityAccountInPeople(
+                kusamaApi,
+                communityId,
+                topup.communityAccountInPeople
+              ),
+            ]
+          : []),
         {
           RefundSurplus: null,
         },
@@ -92,6 +133,18 @@ export async function topupThenCreateCommunity(
         {
           ExpectTransactStatus: "Success",
         },
+        ...(membershipAccounts.length > 0
+          ? [
+              await acquireMembershipsAndAddMembers(
+                kusamaApi,
+                kreivoApi,
+                membershipAccounts
+              ),
+              {
+                ExpectTransactStatus: "Success",
+              },
+            ]
+          : []),
         ...(identity !== undefined
           ? [
               await setIdentityThenAddSubsSendTransact(

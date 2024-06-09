@@ -1,6 +1,8 @@
 import { WsProvider } from "@polkadot/api";
 import { Signer } from "@polkadot/api/types";
 
+export type AccountId = string;
+
 export type ExecutableFunctionOf<T> = (
   providers: Record<string, WsProvider>,
   address: string,
@@ -35,4 +37,10 @@ export type Identity = {
   twitter?: string;
   github?: string;
   discord?: string;
+};
+
+export type Topup = {
+  signerInKreivo: number;
+  communityAccountInKreivo: number;
+  communityAccountInPeople: number;
 };

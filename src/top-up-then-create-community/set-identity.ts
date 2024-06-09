@@ -7,32 +7,11 @@ import {
 } from "../utils/community-account-ids";
 import { concreteIdfungibleAsset, fungibleAsset, location } from "../common";
 
-// const setIdentities = peopleApi.tx.utility.batchAll([
-//   peopleApi.tx.identity.setIdentity({
-//     display: {
-//       Raw: identity.name,
-//     },
-//     image: identity.image ? { Raw: identity.image } : null,
-//   }),
-//   peopleApi.tx.identity.addSub(
-//     {
-//       Id: await sovereignAccountForCommunityInRelay(kusamaApi, communityId),
-//     },
-//     { Raw: "Sovereign Account in Kusama" }
-//   ),
-//   peopleApi.tx.identity.addSub(
-//     {
-//       Id: await communityAccountInKreivo(kusamaApi, communityId),
-//     },
-//     { Raw: "Local Account in Kreivo" }
-//   ),
-// ]);
-
 function encodeableIdentity(identity: Identity) {
   return Object.entries(identity).reduce(
     (o, [key, value]) => ({
       ...o,
-      [key]: value ? { Raw: value } : "None",
+      [key]: value !== undefined || value !== null ? { Raw: value } : "None",
     }),
     {} as Record<string, { Raw: string } | "None">
   );
