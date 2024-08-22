@@ -25,6 +25,9 @@ export class XcmProgramsExecutor {
   }
 
   async execute<T>(fn: ExecutableFunctionOf<T>, ...params: any[]): Promise<T> {
+    if (!this.address || !this.signer) {
+      throw new Error('address must be defined');
+    }
     return fn(this.providers, this.address, this.signer, ...params);
   }
 }
