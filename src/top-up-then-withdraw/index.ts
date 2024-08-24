@@ -2,9 +2,9 @@ import "@polkadot/api-augment/kusama";
 import { WsProvider, ApiPromise } from "@polkadot/api";
 
 import { Signer } from "@polkadot/api/types";
-import { AccountId, MembershipId, PollIndex } from "../types";
+import { AccountId } from "../types";
 
-export async function topupThenWithdraw(
+export async function withdraw(
     // Injected parameters
     providers: Record<string, WsProvider>,
     address: string,
