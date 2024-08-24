@@ -4,7 +4,7 @@ import { WsProvider, ApiPromise } from "@polkadot/api";
 import { Signer } from "@polkadot/api/types";
 import { MembershipId, PollIndex } from "../types";
 
-export async function topupThenInitiativeVote(
+export async function initiativeVote(
     // Injected parameters
     providers: Record<string, WsProvider>,
     address: string,

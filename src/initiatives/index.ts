@@ -9,7 +9,7 @@ import { initiativeAddMembers } from "./add-members";
 import { initiativeTreasuryRequest } from "./treasury";
 import { initiativeConvictionVoting } from "./conviction-voting";
 
-export async function topupThenInitiativeSetup(
+export async function initiativeSetup(
     // Injected parameters
     providers: Record<string, WsProvider>,
     address: string,
