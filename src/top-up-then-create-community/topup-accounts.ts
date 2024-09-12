@@ -38,7 +38,7 @@ export async function topupSignerAccountInKreivo(
 export async function topupCommunityAccountInKreivo(
   api: ApiPromise,
   communityId: number,
-  amount
+  amount: number
 ) {
   // 1b. Transfer amount to Community in Kreivo.
   // This is to support buying memberships.
