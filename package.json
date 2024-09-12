@@ -1,6 +1,6 @@
 {
   "name": "@virtonetwork/xcm-programs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "XCM Programs that work alongside Kreivo",
   "private": true,
   "type": "module",
