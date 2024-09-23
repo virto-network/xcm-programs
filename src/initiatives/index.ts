@@ -3,11 +3,12 @@ import { WsProvider, ApiPromise } from "@polkadot/api";
 import { blake2AsHex } from '@polkadot/util-crypto';
 
 import { Signer } from "@polkadot/api/types";
-import { AccountId, AccountMembership, Conviction, TreasuryPeriod, VoteOpenGov } from "../types";
+import { AccountId, AccountMembership, CommunityTransfer, Conviction, TreasuryPeriod, VoteOpenGov } from "../types";
 import { initiativeRemoveMembers } from "./remove-members";
 import { initiativeAddMembers } from "./add-members";
 import { initiativeTreasuryRequest } from "./treasury";
 import { initiativeConvictionVoting } from "./conviction-voting";
+import { initiativeTransferAsCommunity } from "./transfer-as-community";
 
 export async function initiativeSetup(
     // Injected parameters
@@ -23,6 +24,7 @@ export async function initiativeSetup(
     membershipAccountsRemove: AccountMembership[] = [],
     periodsTreasuryRequest: TreasuryPeriod[] = [],
     votingOpenGov: VoteOpenGov[] = [],
+    communityTransfer: CommunityTransfer[] = []
 ) {
     const kreivoApi = await ApiPromise.create({
         provider: providers.kreivo,
@@ -40,13 +42,14 @@ export async function initiativeSetup(
     let treasury = (periodsTreasuryRequest.length > 0) ? initiativeTreasuryRequest(kreivoApi, kusamaApi, communityId, periodsTreasuryRequest, title) : { calls: [], inline: [] };
 
     let voting = (votingOpenGov.length > 0) ? await initiativeConvictionVoting(kreivoApi, kusamaApi, communityId, votingOpenGov) : [];
-
+    let transfers = (communityTransfer.length > 0) ? await initiativeTransferAsCommunity(kreivoApi, communityTransfer) : [];
+    
     callsOnBatch = [
         ...treasury.calls
     ]
 
     const inlineProposal = kreivoApi.tx.utility.batchAll([
-        ...addMembers, ...removeMembers, ...treasury.inline, ...voting
+        ...addMembers, ...removeMembers, ...treasury.inline, ...voting, ...transfers
     ]).method.toHex();
 
     console.log({ inlineProposal })
