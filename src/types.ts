@@ -49,6 +49,11 @@ export type VoteOpenGov = {
   vote: Vote
 }
 
+export type CommunityTransfer = {
+  account: AccountId,
+  value: number
+}
+
 export type ExecutableFunctionOf<T> = (
   providers: Record<string, WsProvider>,
   address: string,
