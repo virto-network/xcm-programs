@@ -5,7 +5,14 @@
 import "@polkadot/api-augment/substrate";
 import { ApiPromise } from "@polkadot/api";
 import { AccountId } from "../types";
-import { u128 } from "@polkadot/types";
+import { Option, u128 } from "@polkadot/types";
+
+type MembershipItemQuote = {
+  item: number;
+  price: number;
+  buyer?: Option<any>;
+  accountToAssign: string;
+}
 
 async function prepareMemberships(
   api: ApiPromise,
@@ -14,26 +21,32 @@ async function prepareMemberships(
   const itemsForSale =
     await api.query.communityMemberships.itemPriceOf.entriesPaged({
       args: [0],
-      pageSize: membershipAccounts.length,
+      // Page 50 items per each 50 memberships to buy. That way, we'll have enough space to ignore
+      // items not on public sale.
+      pageSize: 50 * Math.ceil(membershipAccounts.length / 50),
     });
 
-  return itemsForSale.map(([key, value], i) => {
-    const itemKey = (key.toHuman() as unknown as string[])[1];
-    const preItem = (key.toHuman() as unknown as string[])[1].replaceAll(
-      /\D/g,
-      ""
-    );
-    const item = Number(preItem);
-    console.log(itemKey, preItem, item);
+  return itemsForSale
+    .map(([key, value], i) => {
+      const itemKey = (key.toHuman() as unknown as string[])[1];
+      const preItem = (key.toHuman() as unknown as string[])[1].replaceAll(
+        /\D/g,
+        ""
+      );
+      const item = Number(preItem);
+      const [price, buyer] = (value as unknown as { unwrap: () => [u128, Option<any>] })
+        .unwrap();
+      console.log(itemKey, preItem, item);
 
-    return {
-      item,
-      price: (value as unknown as { unwrap: () => [u128, string] })
-        .unwrap()[0]
-        .toNumber(),
-      accountToAssign: membershipAccounts[i],
-    };
-  });
+      return {
+        item,
+        price: price.toNumber(),
+        buyer,
+        accountToAssign: membershipAccounts[i],
+      } as MembershipItemQuote;
+    })
+    .filter(({ buyer }) => buyer.isNone)
+    .slice(0, membershipAccounts.length);
 }
 
 export async function acquireMembershipsAndAddMembers(
