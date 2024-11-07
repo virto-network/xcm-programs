@@ -5,12 +5,12 @@
 import "@polkadot/api-augment/substrate";
 import { ApiPromise } from "@polkadot/api";
 import { AccountId } from "../types";
-import { u128 } from "@polkadot/types";
+import { Option, u128 } from "@polkadot/types";
 
 type MembershipItemQuote = {
   item: number;
   price: number;
-  buyer?: string;
+  buyer?: Option<any>;
   accountToAssign: string;
 }
 
@@ -34,7 +34,7 @@ async function prepareMemberships(
         ""
       );
       const item = Number(preItem);
-      const [price, buyer] = (value as unknown as { unwrap: () => [u128, string | undefined] })
+      const [price, buyer] = (value as unknown as { unwrap: () => [u128, Option<any>] })
         .unwrap();
       console.log(itemKey, preItem, item);
 
@@ -45,7 +45,7 @@ async function prepareMemberships(
         accountToAssign: membershipAccounts[i],
       } as MembershipItemQuote;
     })
-    .filter(({ buyer }) => buyer !== undefined)
+    .filter(({ buyer }) => buyer.isNone)
     .slice(0, membershipAccounts.length);
 }
 
