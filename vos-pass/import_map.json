@@ -1,0 +1,9 @@
+{
+  "imports": {
+    "hash-wasm": "npm:hash-wasm",
+    "@polkadot/api-augment": "npm:@polkadot/api-augment",
+    "@polkadot/api": "npm:@polkadot/api",
+    "@polkadot/types": "npm:@polkadot/types",
+    "@polkadot/util": "npm:@polkadot/util"
+  }
+}

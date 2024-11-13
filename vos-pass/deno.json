@@ -1,0 +1,9 @@
+{
+  "nodeModulesDir": "auto",
+  "importMap": "./import_map.json",
+  "test": {
+    "include": [
+      "tests/**/*.ts"
+    ]
+  }
+}
