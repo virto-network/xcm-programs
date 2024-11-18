@@ -1,26 +1,22 @@
-import type { AttestationMeta, Attestation as TAttestation } from "./types.ts";
-import { Compact, u32 } from "@polkadot/types";
-import { hexToU8a, u8aToHex } from "@polkadot/util";
+import type {
+  AttestationMeta,
+  BlockNumber,
+  Compact,
+  Attestation as TAttestation,
+} from "./types.ts";
 
-type BlockNumber = Compact<u32>;
+import { u8aToHex } from "@polkadot/util";
 
 export class Attestation {
-  meta: AttestationMeta<BlockNumber>;
+  meta: AttestationMeta<Compact<BlockNumber>>;
   authenticatorData: `0x${string}`;
   clientData: `0x${string}`;
-  publicKey: Uint8Array;
+  publicKey: `0x${string}`;
 
-  constructor(
-    blockNumber: BlockNumber,
-    deviceId: `0x${string}`,
-    tAttestation: Omit<TAttestation<BlockNumber>, "meta">
-  ) {
-    this.meta = {
-      context: blockNumber,
-      deviceId: hexToU8a(deviceId),
-    };
+  constructor(tAttestation: TAttestation<Compact<BlockNumber>>) {
+    this.meta = tAttestation.meta;
     this.authenticatorData = u8aToHex(tAttestation.authenticatorData);
     this.clientData = u8aToHex(tAttestation.clientData);
-    this.publicKey = tAttestation.publicKey;
+    this.publicKey = u8aToHex(tAttestation.publicKey);
   }
 }
