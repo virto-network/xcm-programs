@@ -11,12 +11,12 @@ export class Assertion {
   meta: AssertionMeta<Compact<BlockNumber>>;
   authenticatorData: `0x${string}`;
   clientData: `0x${string}`;
-  signature: Uint8Array;
+  signature: `0x${string}`;
 
   constructor(tAssertion: TAssertion<Compact<BlockNumber>>) {
     this.meta = tAssertion.meta;
     this.authenticatorData = u8aToHex(tAssertion.authenticatorData);
     this.clientData = u8aToHex(tAssertion.clientData);
-    this.signature = tAssertion.signature;
+    this.signature = u8aToHex(tAssertion.signature);
   }
 }
