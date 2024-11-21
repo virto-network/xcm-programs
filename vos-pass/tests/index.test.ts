@@ -1,5 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 import { ApiPromise, Keyring } from "@polkadot/api";
+import { Blockchain, setStorage } from "npm:@acala-network/chopsticks";
 import type {
   ChainId,
   ClientCreateOptions,
@@ -9,13 +10,13 @@ import {
   RuntimeLogLevel,
   SandboxClient,
 } from "npm:@virtonetwork/kreivo-sandbox@1.3.1";
+import { Vec, u8 } from "@polkadot/types";
 import { afterAll, beforeAll, describe, it } from "jsr:@std/testing/bdd";
 import { eventPartiallyMatches, signSendAndWait } from "./helpers.ts";
 
 import { Pass } from "../src/index.ts";
 import { WebAuthnEmulator } from "jsr:@wok/webauthn-emulator";
 import { expect } from "jsr:@std/expect";
-import { setStorage } from "npm:@acala-network/chopsticks";
 
 const opts: Omit<Deno.TestDefinition, "name" | "fn"> = {
   sanitizeOps: false,
@@ -45,7 +46,7 @@ async function setupSandboxClient() {
     withRelay: false,
     withUpgrade: false,
     withSiblings: [],
-    runtimeLogLevel: RuntimeLogLevel.Trace,
+    runtimeLogLevel: RuntimeLogLevel.Off,
     ...(Deno.env.get("TEST_WASM_OVERRIDE")
       ? {
           wasmOverrides: {
@@ -63,21 +64,25 @@ async function setupSandboxClient() {
 describe("Pass", opts, () => {
   // Define the sandbox
   let sandboxClient: SandboxClient;
+  let kreivoChain: Blockchain;
   let kreivoApi: ApiPromise;
   let hashedUserId: Uint8Array;
 
   // Define the WebAuthn emulator
   const emulator = new WebAuthnEmulator();
   const ORIGIN = "https://kreivo_p.example.com";
+  let accountKey: string;
 
   beforeAll(async () => {
     sandboxClient = await setupSandboxClient();
-    const kreivoChain = sandboxClient.chains.find(
+    const kreivoClient = sandboxClient.chains.find(
       ({ name }) => name === "kreivo"
     )!;
 
+    kreivoChain = kreivoClient.client.blockchain;
+
     const ALICE = KEYRING.addFromUri("//Alice");
-    await setStorage(kreivoChain.client.blockchain, {
+    await setStorage(kreivoChain, {
       System: {
         Account: [
           [
@@ -99,7 +104,7 @@ describe("Pass", opts, () => {
       },
     });
 
-    kreivoApi = kreivoChain.client.api as unknown as ApiPromise;
+    kreivoApi = kreivoClient.client.api as unknown as ApiPromise;
 
     // Note: use SHA-256 for practical reasons. In practice, the `HashedUserId` must be an obscure
     // `[u8; 32]` array, regardless of how it was produced.
@@ -152,9 +157,6 @@ describe("Pass", opts, () => {
       const attestationResponse = emulator.create(ORIGIN, attestationOptions);
       expect(attestationResponse.response.getPublicKey()).toHaveLength(91);
 
-      console.log("On Block:", blockNumber.toNumber());
-      console.log(attestationResponse);
-
       // Register pass
       const pass = new Pass(kreivoApi);
 
@@ -166,18 +168,26 @@ describe("Pass", opts, () => {
         new Uint8Array(attestationResponse.response.clientDataJSON),
         new Uint8Array(attestationResponse.response.getPublicKey()!)
       );
-      console.log("Call Hex:", tx.method.toHex());
 
       const ALICE = KEYRING.addFromUri("//Alice");
       const result = await signSendAndWait(tx, ALICE);
 
-      expect((result.toHuman() as any).events).toContainEqual({
+      expect(result.events).toContainEqual({
         event: {
           method: "Registered",
           section: "pass",
         },
       });
-      expect((result.toHuman() as any).events).toContainEqual({
+
+      const { event: registeredEvent } = result.events.find(
+        (record) => record.event.method === "Registered"
+      )!;
+
+      accountKey = KEYRING.encodeAddress(
+        (registeredEvent.data as unknown as Record<string, Vec<u8>>).who.toU8a()
+      );
+
+      expect(result.events).toContainEqual({
         event: {
           method: "AddedDevice",
           section: "pass",
@@ -206,9 +216,6 @@ describe("Pass", opts, () => {
       // Authenticate pass
       const pass = new Pass(kreivoApi);
 
-      console.log("On Block:", blockNumber.toNumber());
-      console.log(assertionResponse);
-
       const tx = await pass.authenticate(
         blockNumber,
         hashedUserId,
@@ -217,20 +224,135 @@ describe("Pass", opts, () => {
         new Uint8Array(assertionResponse.response.clientDataJSON),
         new Uint8Array(assertionResponse.response.signature)
       );
-      console.log("Call Hex:", tx.method.toHex());
 
-      const BOB = KEYRING.addFromUri("//Alice");
-      const result = await signSendAndWait(tx, BOB);
-
-      console.log(result.toHuman());
+      const SESSION_KEY = KEYRING.addFromUri("//Alice");
+      const result = await signSendAndWait(tx, SESSION_KEY);
 
       expect(result.events).toContainEqual({
         event: {
           section: "pass",
           method: "SessionCreated",
+          data: {
+            sessionKey: SESSION_KEY.address,
+          },
         },
       });
     });
+  });
+
+  describe("#dispatch", () => {
+    it("Dispatching works, assuming the pass account is funded and can pay fees", async () => {
+      await setStorage(kreivoChain, {
+        System: {
+          Account: [
+            [
+              [accountKey],
+              {
+                data: {
+                  free: 1e13,
+                },
+              },
+            ],
+          ],
+        },
+      });
+
+      // We'll use the previously used session key.
+      const SESSION_KEY = KEYRING.addFromUri("//Alice");
+      const SESSION_KEY_FREE_AMOUNT = await kreivoApi.query.system.account(
+        SESSION_KEY.address
+      );
+
+      const PASS_ACCOUNT_FREE_AMOUNT = await kreivoApi.query.system.account(
+        accountKey
+      );
+
+      // We're going to submit an on-chain remark that should raise an event.
+      const tx = kreivoApi.tx.pass.dispatch(
+        kreivoApi.tx.system.remarkWithEvent("Hello, world!"),
+        null,
+        null
+      );
+
+      const result = await signSendAndWait(tx, SESSION_KEY);
+
+      expect(result.events).toContainEqual({
+        event: {
+          section: "system",
+          method: "Remarked",
+          data: {
+            sender: accountKey,
+          },
+        },
+      });
+
+      const SESSION_KEY_FREE_AMOUNT_NOW = await kreivoApi.query.system.account(
+        SESSION_KEY.address
+      );
+      expect(SESSION_KEY_FREE_AMOUNT_NOW.data.free.toBigInt()).toEqual(
+        SESSION_KEY_FREE_AMOUNT.data.free.toBigInt()
+      );
+
+      const PASS_ACCOUNT_FREE_AMOUNT_NOW = await kreivoApi.query.system.account(
+        SESSION_KEY.address
+      );
+      expect(PASS_ACCOUNT_FREE_AMOUNT_NOW.data.free.toNumber()).toBeLessThan(
+        PASS_ACCOUNT_FREE_AMOUNT.data.free.toNumber()
+      );
+    });
+
+    // TODO: Try dispatching, assuming an account has a membership that can cover for fees.
+
+    // kreivoApi.registerTypes({
+    //   BlockNumber: "u32",
+    //   Weight: "SpWeightsWeightV2Weight",
+    //   GasTank: {
+    //     since: "BlockNumber",
+    //     used: "Weight",
+    //     period: "Option<BlockNumber>",
+    //     maxPerPeriod: "Option<Weight>",
+    //   },
+    // });
+
+    // await setStorage(kreivoChain, {
+    //   CommunityMemberships: {
+    //     Attribute: [
+    //       [
+    //         [1, 0, "Pallet", "Xmembership_gas"],
+    //         [
+    //           kreivoApi
+    //             .createType("GasTank", {
+    //               since: 0,
+    //               used: {
+    //                 refTime: 0,
+    //                 proofSize: 0,
+    //               },
+    //               period: null, // Yup, this is unlimited
+    //               maxPerPeriod: null, // Yup, this is unlimited
+    //             })
+    //             .toHex(),
+    //           {
+    //             account: null,
+    //             amount: 0,
+    //           },
+    //         ],
+    //       ],
+    //     ],
+    //     Item: [
+    //       [
+    //         [1, 0],
+    //         {
+    //           owner: accountKey,
+    //           approvals: {},
+    //           deposit: {
+    //             account: "F3opxRbN5ZbjJNU511Kj2TLuzFcDq9BGduA9TgiECafpg29",
+    //             amount: 0,
+    //           },
+    //         },
+    //       ],
+    //     ],
+    //   },
+    // });
   });
 
   afterAll(async () => {
