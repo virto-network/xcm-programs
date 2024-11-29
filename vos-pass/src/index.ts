@@ -17,12 +17,10 @@ export class Pass {
   static async generateChallenge(
     api: ApiPromise
   ): Promise<[Uint8Array, Compact<BlockNumber>]> {
-    const block = await api.rpc.chain.getBlock();
-    const blockNumber = block.block.header.number;
-    const blockNumberBytes = blockNumber.toBn().toBuffer("le");
-
-    const hashed = await hash.blake2b(blockNumberBytes, 256);
-    return [hexToU8a(`0x${hashed}`), blockNumber];
+    const {
+      block: { header },
+    } = await api.rpc.chain.getBlock();
+    return [header.hash, header.number];
   }
 
   constructor(private api: ApiPromise) {}

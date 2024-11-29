@@ -1,4 +1,3 @@
-// deno-lint-ignore-file no-explicit-any
 import { ApiPromise, Keyring } from "@polkadot/api";
 import { Blockchain, setStorage } from "npm:@acala-network/chopsticks";
 import type {
@@ -123,7 +122,6 @@ describe("Pass", opts, () => {
       // Define origin and user information
       const user = {
         id: hashedUserId,
-        name: "testuser",
         displayName: "Test User",
       };
 
@@ -135,7 +133,6 @@ describe("Pass", opts, () => {
           },
           user: {
             id: user.id,
-            name: user.name,
             displayName: user.displayName,
           },
           challenge,
@@ -172,6 +169,7 @@ describe("Pass", opts, () => {
       const ALICE = KEYRING.addFromUri("//Alice");
       const result = await signSendAndWait(tx, ALICE);
 
+      // Verification
       expect(result.events).toContainEqual({
         event: {
           method: "Registered",
@@ -225,9 +223,10 @@ describe("Pass", opts, () => {
         new Uint8Array(assertionResponse.response.signature)
       );
 
-      const SESSION_KEY = KEYRING.addFromUri("//Alice");
+      const SESSION_KEY = KEYRING.addFromUri("//Bob");
       const result = await signSendAndWait(tx, SESSION_KEY);
 
+      // Verification
       expect(result.events).toContainEqual({
         event: {
           section: "pass",
@@ -258,7 +257,7 @@ describe("Pass", opts, () => {
       });
 
       // We'll use the previously used session key.
-      const SESSION_KEY = KEYRING.addFromUri("//Alice");
+      const SESSION_KEY = KEYRING.addFromUri("//Bob");
       const SESSION_KEY_FREE_AMOUNT = await kreivoApi.query.system.account(
         SESSION_KEY.address
       );
