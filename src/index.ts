@@ -7,6 +7,7 @@ import { ExecutableFunctionOf } from "./types";
 import { deposit } from "./deposit";
 
 export { XcmProgramsExecutor } from "./executor";
+export { Pass } from "./vos-pass"
 
 export function globallyInjectPrograms(executor: XcmProgramsExecutor) {
   const functions: Function[] = [
@@ -14,7 +15,7 @@ export function globallyInjectPrograms(executor: XcmProgramsExecutor) {
     withdraw,
     deposit,
     initiativeSetup,
-    initiativeVote
+    initiativeVote,
   ];
 
   for (const fn of functions) {
@@ -22,3 +23,4 @@ export function globallyInjectPrograms(executor: XcmProgramsExecutor) {
       executor.execute(fn as ExecutableFunctionOf<any>, ...params);
   }
 }
+

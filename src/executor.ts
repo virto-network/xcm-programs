@@ -2,6 +2,7 @@ import { WsProvider } from "@polkadot/api";
 import { web3Enable, web3FromAddress } from "@polkadot/extension-dapp";
 import type { Signer } from "@polkadot/types/types";
 import type { ExecutableFunctionOf } from "./types";
+import { ApiPromise } from "@polkadot/api";
 
 export class XcmProgramsExecutor {
   private providers: Record<string, WsProvider> = {};
@@ -17,6 +18,14 @@ export class XcmProgramsExecutor {
 
   async initialize(appName: string) {
     await web3Enable(appName);
+  }
+
+  async getKreivoAPI() {
+    const kreivoApi = await ApiPromise.create({
+      provider: this.providers.kreivo,
+    });
+
+    return kreivoApi
   }
 
   async setSigner(address: string) {
