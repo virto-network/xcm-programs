@@ -2,6 +2,7 @@ export { type BlockNumber } from "@polkadot/types/interfaces";
 export { type Compact } from "@polkadot/types";
 
 export type AttestationMeta<Cx> = {
+  authorityId: Uint8Array;
   deviceId: Uint8Array;
   context: Cx;
 };
@@ -14,6 +15,7 @@ export type Attestation<Cx> = {
 };
 
 export type AssertionMeta<Cx> = {
+  authorityId: Uint8Array;
   userId: Uint8Array;
   context: Cx;
 };

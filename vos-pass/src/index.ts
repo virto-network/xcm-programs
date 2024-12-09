@@ -10,6 +10,15 @@ import { Attestation } from "./attestation.ts";
 import { SubmittableExtrinsic } from "@polkadot/api/types";
 import { hexToU8a } from "@polkadot/util";
 
+function strArray(str: string, size: number): Uint8Array {
+  return new Uint8Array(
+    str
+      .split("")
+      .map((x) => x.charCodeAt(0))
+      .concat(new Array(size - str.length).fill(0))
+  );
+}
+
 /**
  *
  */
@@ -42,6 +51,7 @@ export class Pass {
       "PassWebauthnAttestation",
       new Attestation({
         meta: {
+          authorityId: strArray("kreivo_p", 32),
           context: blockNumber,
           deviceId: await this.#getDeviceId(credentialId),
         },
@@ -64,6 +74,7 @@ export class Pass {
   ): Promise<SubmittableExtrinsic<"promise">> {
     const assertion = new Assertion({
       meta: {
+        authorityId: strArray("kreivo_p", 32),
         context: blockNumber,
         userId: hashedUserId,
       },

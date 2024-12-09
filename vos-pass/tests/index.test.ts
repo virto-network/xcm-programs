@@ -69,7 +69,7 @@ describe("Pass", opts, () => {
 
   // Define the WebAuthn emulator
   const emulator = new WebAuthnEmulator();
-  const ORIGIN = "https://kreivo_p.example.com";
+  const ORIGIN = "https://example.com";
   let accountKey: string;
 
   beforeAll(async () => {
