@@ -3,7 +3,7 @@ import type {
   BlockNumber,
   Compact,
   Attestation as TAttestation,
-} from "./types.ts";
+} from "./types";
 
 import { u8aToHex } from "@polkadot/util";
 

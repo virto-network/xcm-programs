@@ -7,6 +7,7 @@ import { ExecutableFunctionOf } from "./types";
 import { deposit } from "./deposit";
 
 export { XcmProgramsExecutor } from "./executor";
+export { Pass } from "../vos-pass/src/index"
 
 export function globallyInjectPrograms(executor: XcmProgramsExecutor) {
   const functions: Function[] = [

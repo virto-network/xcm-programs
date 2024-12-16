@@ -2,11 +2,11 @@ import "@polkadot/api-augment/kusama";
 
 import * as hash from "hash-wasm";
 
-import { BlockNumber, Compact } from "./types.ts";
+import { BlockNumber, Compact } from "./types";
 
 import { ApiPromise } from "@polkadot/api";
-import { Assertion } from "./assertion.ts";
-import { Attestation } from "./attestation.ts";
+import { Assertion } from "./assertion";
+import { Attestation } from "./attestation";
 import { SubmittableExtrinsic } from "@polkadot/api/types";
 import { hexToU8a } from "@polkadot/util";
 
@@ -32,7 +32,7 @@ export class Pass {
     return [header.hash, header.number];
   }
 
-  constructor(private api: ApiPromise) {}
+  constructor(private api: ApiPromise) { }
 
   async #getDeviceId(credentialId: Uint8Array): Promise<Uint8Array> {
     const hashed = await hash.blake2b(credentialId, 256);
@@ -46,7 +46,7 @@ export class Pass {
     authenticatorData: Uint8Array,
     clientData: Uint8Array,
     publicKey: Uint8Array
-  ): Promise<SubmittableExtrinsic<"promise">> {
+  ): Promise<[SubmittableExtrinsic<"promise">, String]> {
     const attestation = this.api.createType(
       "PassWebauthnAttestation",
       new Attestation({
@@ -61,7 +61,7 @@ export class Pass {
       })
     );
 
-    return this.api.tx.pass.register(hashedUserId, { WebAuthn: attestation });
+    return [this.api.tx.pass.register(hashedUserId, { WebAuthn: attestation }), this.api.tx.pass.register(hashedUserId, { WebAuthn: attestation }).toHex()];
   }
 
   async authenticate(
@@ -71,7 +71,7 @@ export class Pass {
     authenticatorData: Uint8Array,
     clientData: Uint8Array,
     signature: Uint8Array
-  ): Promise<SubmittableExtrinsic<"promise">> {
+  ): Promise<[SubmittableExtrinsic<"promise">, String]> {
     const assertion = new Assertion({
       meta: {
         authorityId: strArray("kreivo_p", 32),
@@ -83,12 +83,18 @@ export class Pass {
       signature,
     });
 
-    return this.api.tx.pass.authenticate(
+    return [this.api.tx.pass.authenticate(
       await this.#getDeviceId(credentialId),
       {
         WebAuthn: assertion,
       },
       null
-    );
+    ), this.api.tx.pass.authenticate(
+      await this.#getDeviceId(credentialId),
+      {
+        WebAuthn: assertion,
+      },
+      null
+    ).toHex()];
   }
 }
